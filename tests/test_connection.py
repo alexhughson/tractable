@@ -2,8 +2,8 @@
 
 import json
 import os
-import gspread
 from dotenv import load_dotenv
+from tractable.connection_pool import get_connection_pool
 
 
 def test_connection():
@@ -16,8 +16,8 @@ def test_connection():
     assert sheet_id, "TEST_SHEET_ID env var required"
 
     creds_data = json.loads(creds_json)
-    gc = gspread.service_account_from_dict(creds_data)
-    sheet = gc.open_by_key(sheet_id)
+    pool = get_connection_pool(creds_data)
+    sheet = pool.open_spreadsheet(sheet_id)
 
     worksheet = sheet.sheet1
     worksheet.clear()
@@ -29,7 +29,7 @@ def test_connection():
         ["Charlie", "charlie@example.com", "92"],
     ]
 
-    worksheet.update("A1:C4", test_data)
+    worksheet.update(test_data, "A1:C4")
 
     result = worksheet.get_all_values()
 

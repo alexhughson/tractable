@@ -63,23 +63,20 @@ def format_update_range(worksheet_name, row_index, num_columns):
 
 
 class Range:
-    def __init__(self, async_client, sheet_id, range_name):
-        self.async_client = async_client
-        self.sheet_id = sheet_id
+    def __init__(self, spreadsheet, range_name):
+        self.spreadsheet = spreadsheet
         self.range_name = range_name
     
-    async def iter(self, model: Optional[Type[T]] = None):
-        spreadsheet = await self.async_client.open_by_key(self.sheet_id)
-        
+    def iter(self, model: Optional[Type[T]] = None):
         worksheet_name, cell_range = parse_range_notation(self.range_name)
         
         if worksheet_name:
-            worksheet = await spreadsheet.worksheet(worksheet_name)
+            worksheet = self.spreadsheet.worksheet(worksheet_name)
         else:
-            worksheets = await spreadsheet.worksheets()
+            worksheets = self.spreadsheet.worksheets()
             worksheet = worksheets[0]
         
-        values = await worksheet.get(cell_range)
+        values = worksheet.get(cell_range)
         
         if not values:
             raise ValueError("No data found in range")
@@ -99,36 +96,35 @@ class Range:
             else:
                 yield row_dict
     
-    async def map(self, transform_func, *, model: Optional[Type[T]] = None):
-        worksheet = await self._get_worksheet()
-        values = await self._get_values(worksheet)
+    def map(self, transform_func, *, model: Optional[Type[T]] = None):
+        worksheet = self._get_worksheet()
+        values = self._get_values(worksheet)
         
         if not values or len(values) < 2:
             return
         
         headers = values[0]
-        updates = await self._process_rows_for_update(
+        updates = self._process_rows_for_update(
             values[1:], headers, transform_func, model
         )
         
         if updates:
-            await worksheet.batch_update(updates)
+            worksheet.batch_update(updates)
     
-    async def _get_worksheet(self):
-        spreadsheet = await self.async_client.open_by_key(self.sheet_id)
+    def _get_worksheet(self):
         worksheet_name, _ = parse_range_notation(self.range_name)
         
         if worksheet_name:
-            return await spreadsheet.worksheet(worksheet_name)
+            return self.spreadsheet.worksheet(worksheet_name)
         else:
-            worksheets = await spreadsheet.worksheets()
+            worksheets = self.spreadsheet.worksheets()
             return worksheets[0]
     
-    async def _get_values(self, worksheet):
+    def _get_values(self, worksheet):
         _, cell_range = parse_range_notation(self.range_name)
-        return await worksheet.get(cell_range)
+        return worksheet.get(cell_range)
     
-    async def _process_rows_for_update(self, data_rows, headers, transform_func, model):
+    def _process_rows_for_update(self, data_rows, headers, transform_func, model):
         updates = []
         row_index = 2
         
@@ -137,7 +133,7 @@ class Range:
                 break
             
             item = self._prepare_item(row, headers, model)
-            transformed = await transform_func(item)
+            transformed = transform_func(item)
             
             if transformed is not None:
                 update = self._create_update(transformed, headers, row_index, model)
@@ -167,11 +163,10 @@ class Range:
             'values': [new_row]
         }
     
-    async def reduce(self, reducer_func, *, initial, model: Optional[Type[T]] = None):
+    def reduce(self, reducer_func, *, initial, model: Optional[Type[T]] = None):
         accumulator = initial
         
-        async for item in self.iter(model):
-            accumulator = await reducer_func(accumulator, item)
+        for item in self.iter(model):
+            accumulator = reducer_func(accumulator, item)
         
         return accumulator
-    

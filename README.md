@@ -1,6 +1,6 @@
 # tractable
 
-Type-safe, async-first Python library for Google Sheets operations.
+Type-safe Python library for Google Sheets operations.
 
 ## Installation
 
@@ -25,7 +25,7 @@ service_account_dict = {
 }
 
 # Create spreadsheet instance
-sheet = await Spreadsheet(service_account_dict, "your-sheet-id")
+sheet = Spreadsheet(service_account_dict, "your-sheet-id")
 ```
 
 ## Core Operations
@@ -41,11 +41,11 @@ class User(BaseModel):
     score: float = 0.0
 
 # Iterate with Pydantic model
-async for user in sheet.range("A1:Z100").iter(User):
+for user in sheet.range("A1:Z100").iter(User):
     print(f"{user.name}: {user.score}")
 
 # Iterate as dicts (no model)
-async for row in sheet.range("A1:Z100").iter():
+for row in sheet.range("A1:Z100").iter():
     print(row["name"], row["email"])
 ```
 
@@ -53,31 +53,19 @@ async for row in sheet.range("A1:Z100").iter():
 
 ```python
 # Transform function - return None to skip update
-async def boost_score(user: User) -> User:
+def boost_score(user: User) -> User:
     user.score *= 1.1
     return user
 
 # Apply transformation to range
-await sheet.range("A2:Z100").map(boost_score, model=User)
+sheet.range("A2:Z100").map(boost_score, model=User)
 
 # Map without model (dict mode)
-async def process_row(row: dict) -> dict:
+def process_row(row: dict) -> dict:
     row["status"] = "processed"
     return row
 
-await sheet.range("A2:Z100").map(process_row)
-```
-
-### Filter - Query without modification
-
-```python
-# Returns async iterator, doesn't modify sheet
-async for user in sheet.range("A2:Z100").filter(User, lambda u: u.score > 50):
-    print(user.name)
-
-# Filter dicts
-async for row in sheet.range("A2:Z100").filter(lambda r: r.get("active") == "yes"):
-    print(row)
+sheet.range("A2:Z100").map(process_row)
 ```
 
 ## Working with Ranges
@@ -102,45 +90,43 @@ users_sheet = sheet.range("Users")  # Entire worksheet
 ### Simple data processing
 
 ```python
-import asyncio
 from tractable import Spreadsheet
 
-async def main():
+def main():
     # Setup auth - load your service account JSON
     service_account_dict = load_service_account_json()  # your implementation
-    sheet = await Spreadsheet(service_account_dict, "your-sheet-id")
+    sheet = Spreadsheet(service_account_dict, "your-sheet-id")
 
     # Read and process data
     total = 0
-    async for user in sheet.range("Users!A2:Z").iter(User):
+    for user in sheet.range("Users!A2:Z").iter(User):
         total += user.score
 
     print(f"Total score: {total}")
 
     # Update scores
-    async def normalize(user: User) -> User:
+    def normalize(user: User) -> User:
         if user.score > 100:
             user.score = 100
         return user
 
-    await sheet.range("Users!A2:Z").map(normalize, model=User)
+    sheet.range("Users!A2:Z").map(normalize, model=User)
 
-asyncio.run(main())
+main()
 ```
 
 ### Working without models
 
 ```python
 # Pure dict operations
-async for row in sheet.range("A2:Z").iter():
+for row in sheet.range("A2:Z").iter():
     if row.get("status") == "pending":
         row["status"] = "processing"
-        await sheet.range(f"A{row['_row']}:Z{row['_row']}").map(lambda r: row)
+        sheet.range(f"A{row['_row']}:Z{row['_row']}").map(lambda r: row)
 ```
 
 ## Notes
 
-- All operations are async-first
 - Map functions return `None` to skip updates, or the modified object to update
 - Pydantic models are optional - use dicts for simpler cases
 - Uses gspread authentication under the hood

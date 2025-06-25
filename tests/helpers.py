@@ -5,6 +5,7 @@ import os
 import json
 import gspread
 from dotenv import load_dotenv
+from tractable.connection_pool import get_connection_pool
 
 
 def get_test_credentials():
@@ -22,12 +23,15 @@ def get_test_sheet_id():
 
 
 def get_gspread_client():
+    # Legacy function - kept for compatibility but uses connection pool
     service_account_dict = get_test_credentials()
-    return gspread.service_account_from_dict(service_account_dict)
+    pool = get_connection_pool(service_account_dict)
+    return pool
 
 
 def create_test_worksheet(sheet_name, rows=10, cols=5):
-    spreadsheet = get_gspread_client().open_by_key(get_test_sheet_id())
+    pool = get_gspread_client()
+    spreadsheet = pool.open_spreadsheet(get_test_sheet_id())
     
     try:
         worksheet = spreadsheet.worksheet(sheet_name)
@@ -40,7 +44,8 @@ def create_test_worksheet(sheet_name, rows=10, cols=5):
 
 def cleanup_test_worksheet(sheet_name):
     try:
-        spreadsheet = get_gspread_client().open_by_key(get_test_sheet_id())
+        pool = get_gspread_client()
+        spreadsheet = pool.open_spreadsheet(get_test_sheet_id())
         worksheet = spreadsheet.worksheet(sheet_name)
         spreadsheet.del_worksheet(worksheet)
     except:

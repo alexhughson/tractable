@@ -1,7 +1,5 @@
 pytest>=7.0.0
-pytest-asyncio>=0.21.0
 python-dotenv>=1.0.0
 gspread>=6.0.0
-gspread-asyncio>=2.0.0
 google-auth>=2.0.0
 google-auth-oauthlib>=1.0.0

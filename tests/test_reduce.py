@@ -13,23 +13,22 @@ class Product(BaseModel):
     quantity: int
 
 
-@pytest.mark.asyncio
-async def test_reduce_with_pydantic_model():
+def test_reduce_with_pydantic_model():
     worksheet = create_test_worksheet("ReduceModelTest", rows=10, cols=3)
-    worksheet.update(range_name="A1:C5", values=[
+    worksheet.update(values=[
         ["name", "price", "quantity"],
         ["Apple", "1.50", "10"],
         ["Banana", "0.75", "15"],
         ["Orange", "2.00", "8"],
         ["Grape", "3.50", "5"]
-    ])
+    ], range_name="A1:C5")
     
-    sheet = await Spreadsheet(get_test_credentials(), get_test_sheet_id())
+    sheet = Spreadsheet(get_test_credentials(), get_test_sheet_id())
     
-    async def calculate_total(accumulator, product):
+    def calculate_total(accumulator, product):
         return accumulator + (product.price * product.quantity)
     
-    total_value = await sheet.range("ReduceModelTest!A1:C5").reduce(
+    total_value = sheet.range("ReduceModelTest!A1:C5").reduce(
         calculate_total,
         initial=0.0,
         model=Product
@@ -41,24 +40,23 @@ async def test_reduce_with_pydantic_model():
     cleanup_test_worksheet("ReduceModelTest")
 
 
-@pytest.mark.asyncio
-async def test_reduce_with_dicts():
+def test_reduce_with_dicts():
     worksheet = create_test_worksheet("ReduceDictTest", rows=10, cols=2)
-    worksheet.update(range_name="A1:B5", values=[
+    worksheet.update(values=[
         ["name", "score"],
         ["Player1", "100"],
         ["Player2", "250"],
         ["Player3", "175"],
         ["Player4", "300"]
-    ])
+    ], range_name="A1:B5")
     
-    sheet = await Spreadsheet(get_test_credentials(), get_test_sheet_id())
+    sheet = Spreadsheet(get_test_credentials(), get_test_sheet_id())
     
-    async def find_max_score(accumulator, row):
+    def find_max_score(accumulator, row):
         score = int(row["score"])
         return max(accumulator, score)
     
-    max_score = await sheet.range("ReduceDictTest!A1:B5").reduce(
+    max_score = sheet.range("ReduceDictTest!A1:B5").reduce(
         find_max_score,
         initial=0
     )
@@ -68,17 +66,16 @@ async def test_reduce_with_dicts():
     cleanup_test_worksheet("ReduceDictTest")
 
 
-@pytest.mark.asyncio
-async def test_reduce_empty_range():
+def test_reduce_empty_range():
     worksheet = create_test_worksheet("ReduceEmptyTest", rows=10, cols=2)
-    worksheet.update(range_name="A1:B1", values=[["name", "value"]])
+    worksheet.update(values=[["name", "value"]], range_name="A1:B1")
     
-    sheet = await Spreadsheet(get_test_credentials(), get_test_sheet_id())
+    sheet = Spreadsheet(get_test_credentials(), get_test_sheet_id())
     
-    async def sum_values(acc, row):
+    def sum_values(acc, row):
         return acc + int(row["value"])
     
-    result = await sheet.range("ReduceEmptyTest!A1:B10").reduce(
+    result = sheet.range("ReduceEmptyTest!A1:B10").reduce(
         sum_values,
         initial=0
     )
