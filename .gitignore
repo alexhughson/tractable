@@ -11,11 +11,31 @@ ENV/
 *.egg-info/
 dist/
 build/
+*.egg
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+wheels/
+share/python-wheels/
+*.manifest
+*.spec
+.installed.cfg
+MANIFEST
+.pdm.toml
+.pdm-python
+.pdm-build/
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
 
 # IDE
 .vscode/
