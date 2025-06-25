@@ -22,33 +22,44 @@ def row_to_dict(headers, row):
 
 
 def dict_to_model(model, row_dict):
-    typed_data = {}
-    for field_name, field_info in model.model_fields.items():
-        if field_name in row_dict:
-            value = row_dict[field_name]
-            if value == "":
-                if field_info.default is not None:
-                    continue
-                elif not field_info.is_required():
-                    typed_data[field_name] = None
-                    continue
-            typed_data[field_name] = value
+    # Convert empty strings to None for optional fields
+    cleaned_data = {}
+    for key, value in row_dict.items():
+        if value == "":
+            cleaned_data[key] = None
+        else:
+            cleaned_data[key] = value
     
-    if hasattr(model, 'model_config') and model.model_config.get('extra') == 'allow':
-        for key, value in row_dict.items():
-            if key not in model.model_fields:
-                typed_data[key] = value
-    
-    return model(**typed_data)
+    # Let Pydantic handle all validation, aliasing, and defaults
+    return model(**cleaned_data)
 
 
 def model_to_row(item, headers):
+    # Get model data as dict
+    model_data = item.model_dump(mode='python')
+    
+    # Build a mapping from validation_alias to field names
+    model_class = type(item)
+    alias_to_field = {}
+    for field_name, field_info in model_class.model_fields.items():
+        if hasattr(field_info, 'validation_alias') and field_info.validation_alias:
+            alias_to_field[field_info.validation_alias] = field_name
+    
+    # Build row in order of headers
     new_row = []
     for header in headers:
-        field_value = getattr(item, header, None)
-        if field_value is None and hasattr(item, '__dict__'):
-            field_value = item.__dict__.get(header)
-        new_row.append(str(field_value) if field_value is not None else "")
+        if header in alias_to_field:
+            # Header matches a validation_alias
+            field_name = alias_to_field[header]
+            value = model_data.get(field_name)
+        elif header in model_data:
+            # Header matches a field name directly
+            value = model_data.get(header)
+        else:
+            # Header not found
+            value = None
+        
+        new_row.append(str(value) if value is not None else "")
     return new_row
 
 
@@ -129,6 +140,7 @@ class Range:
         row_index = 2
         
         for row in data_rows:
+            # Check for empty row BEFORE trying to prepare the item
             if all(cell == "" for cell in row):
                 break
             
