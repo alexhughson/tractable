@@ -2,10 +2,14 @@
 
 Type-safe Python library for Google Sheets operations.
 
+I would not trust it, Claude wrote all the code.
+
+I only reviewed the tests.
+
 ## Installation
 
 ```bash
-pip install tractable
+pip install git+https://github.com/alexhughson/tractable.git
 ```
 
 ## Authentication
@@ -58,14 +62,14 @@ def boost_score(user: User) -> User:
     return user
 
 # Apply transformation to range
-sheet.range("A2:Z100").map(boost_score, model=User)
+sheet.range("A:Z").map(boost_score, model=User)
 
 # Map without model (dict mode)
 def process_row(row: dict) -> dict:
     row["status"] = "processed"
     return row
 
-sheet.range("A2:Z100").map(process_row)
+sheet.range("Sheet2!A:Z").map(process_row)
 ```
 
 ## Working with Ranges
