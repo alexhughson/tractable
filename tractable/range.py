@@ -167,3 +167,11 @@ class Range:
             'values': [new_row]
         }
     
+    async def reduce(self, reducer_func, *, initial, model: Optional[Type[T]] = None):
+        accumulator = initial
+        
+        async for item in self.iter(model):
+            accumulator = await reducer_func(accumulator, item)
+        
+        return accumulator
+    
