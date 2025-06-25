@@ -35,23 +35,31 @@ def dict_to_model(model, row_dict):
 
 
 def model_to_row(item, headers):
-    # Get model data as dict
+    # Get model data as dict using by_alias=True to get aliased field names
+    model_data_by_alias = item.model_dump(mode='python', by_alias=True)
     model_data = item.model_dump(mode='python')
     
-    # Build a mapping from validation_alias to field names
+    # Build a mapping from all possible aliases to field names
     model_class = type(item)
     alias_to_field = {}
     for field_name, field_info in model_class.model_fields.items():
+        # Check for validation_alias
         if hasattr(field_info, 'validation_alias') and field_info.validation_alias:
             alias_to_field[field_info.validation_alias] = field_name
+        # Check for regular alias
+        if hasattr(field_info, 'alias') and field_info.alias:
+            alias_to_field[field_info.alias] = field_name
     
     # Build row in order of headers
     new_row = []
     for header in headers:
         if header in alias_to_field:
-            # Header matches a validation_alias
+            # Header matches an alias
             field_name = alias_to_field[header]
             value = model_data.get(field_name)
+        elif header in model_data_by_alias:
+            # Header matches serialized alias name
+            value = model_data_by_alias.get(header)
         elif header in model_data:
             # Header matches a field name directly
             value = model_data.get(header)
